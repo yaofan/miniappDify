@@ -1,7 +1,6 @@
 import type { FC } from 'react'
 import {
   memo,
-  useCallback,
   useMemo,
 } from 'react'
 import { intersectionBy } from 'lodash-es'
@@ -16,9 +15,7 @@ import type { KnowledgeRetrievalNodeType } from './types'
 import Field from '@/app/components/workflow/nodes/_base/components/field'
 import Split from '@/app/components/workflow/nodes/_base/components/split'
 import OutputVars, { VarItem } from '@/app/components/workflow/nodes/_base/components/output-vars'
-import { InputVarType, type NodePanelProps } from '@/app/components/workflow/types'
-import BeforeRunForm from '@/app/components/workflow/nodes/_base/components/before-run-form'
-import ResultPanel from '@/app/components/workflow/run/result-panel'
+import type { NodePanelProps } from '@/app/components/workflow/types'
 
 const i18nPrefix = 'workflow.nodes.knowledgeRetrieval'
 
@@ -32,7 +29,9 @@ const Panel: FC<NodePanelProps<KnowledgeRetrievalNodeType>> = ({
     readOnly,
     inputs,
     handleQueryVarChange,
-    filterVar,
+    handleQueryAttachmentChange,
+    filterStringVar,
+    filterFileVar,
     handleModelChanged,
     handleCompletionParamsChange,
     handleRetrievalModeChange,
@@ -40,14 +39,6 @@ const Panel: FC<NodePanelProps<KnowledgeRetrievalNodeType>> = ({
     selectedDatasets,
     selectedDatasetsLoaded,
     handleOnDatasetsChange,
-    isShowSingleRun,
-    hideSingleRun,
-    runningStatus,
-    handleRun,
-    handleStop,
-    query,
-    setQuery,
-    runResult,
     rerankModelOpen,
     setRerankModelOpen,
     handleAddCondition,
@@ -61,11 +52,8 @@ const Panel: FC<NodePanelProps<KnowledgeRetrievalNodeType>> = ({
     availableStringNodesWithParent,
     availableNumberVars,
     availableNumberNodesWithParent,
+    showImageQueryVarSelector,
   } = useConfig(id, data)
-
-  const handleOpenFromPropsChange = useCallback((openFromProps: boolean) => {
-    setRerankModelOpen(openFromProps)
-  }, [setRerankModelOpen])
 
   const metadataList = useMemo(() => {
     return intersectionBy(...selectedDatasets.filter((dataset) => {
@@ -78,22 +66,33 @@ const Panel: FC<NodePanelProps<KnowledgeRetrievalNodeType>> = ({
   return (
     <div className='pt-2'>
       <div className='space-y-4 px-4 pb-2'>
-        {/* {JSON.stringify(inputs, null, 2)} */}
-        <Field
-          title={t(`${i18nPrefix}.queryVariable`)}
-        >
+        <Field title={t(`${i18nPrefix}.queryText`)}>
           <VarReferencePicker
             nodeId={id}
             readonly={readOnly}
             isShowNodeName
             value={inputs.query_variable_selector}
             onChange={handleQueryVarChange}
-            filterVar={filterVar}
+            filterVar={filterStringVar}
           />
         </Field>
 
+        {showImageQueryVarSelector && (
+          <Field title={t(`${i18nPrefix}.queryAttachment`)}>
+            <VarReferencePicker
+              nodeId={id}
+              readonly={readOnly}
+              isShowNodeName
+              value={inputs.query_attachment_selector}
+              onChange={handleQueryAttachmentChange}
+              filterVar={filterFileVar}
+            />
+          </Field>
+        )}
+
         <Field
           title={t(`${i18nPrefix}.knowledge`)}
+          required
           operations={
             <div className='flex items-center space-x-1'>
               <RetrievalConfig
@@ -108,11 +107,11 @@ const Panel: FC<NodePanelProps<KnowledgeRetrievalNodeType>> = ({
                 onSingleRetrievalModelChange={handleModelChanged as any}
                 onSingleRetrievalModelParamsChange={handleCompletionParamsChange}
                 readonly={readOnly || !selectedDatasets.length}
-                openFromProps={rerankModelOpen}
-                onOpenFromPropsChange={handleOpenFromPropsChange}
+                rerankModalOpen={rerankModelOpen}
+                onRerankModelOpenChange={setRerankModelOpen}
                 selectedDatasets={selectedDatasets}
               />
-              {!readOnly && (<div className='h-3 w-px bg-gray-200'></div>)}
+              {!readOnly && (<div className='h-3 w-px bg-divider-regular'></div>)}
               {!readOnly && (
                 <AddKnowledge
                   selectedIds={inputs.dataset_ids}
@@ -184,33 +183,16 @@ const Panel: FC<NodePanelProps<KnowledgeRetrievalNodeType>> = ({
                   type: 'object',
                   description: t(`${i18nPrefix}.outputVars.metadata`),
                 },
+                {
+                  name: 'files',
+                  type: 'Array[File]',
+                  description: t(`${i18nPrefix}.outputVars.files`),
+                },
               ]}
             />
 
           </>
         </OutputVars>
-        {isShowSingleRun && (
-          <BeforeRunForm
-            nodeName={inputs.title}
-            onHide={hideSingleRun}
-            forms={[
-              {
-                inputs: [{
-                  label: t(`${i18nPrefix}.queryVariable`)!,
-                  variable: 'query',
-                  type: InputVarType.paragraph,
-                  required: true,
-                }],
-                values: { query },
-                onChange: keyValue => setQuery((keyValue as any).query),
-              },
-            ]}
-            runningStatus={runningStatus}
-            onRun={handleRun}
-            onStop={handleStop}
-            result={<ResultPanel {...runResult} showSteps={false} />}
-          />
-        )}
       </div>
     </div>
   )

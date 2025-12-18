@@ -25,6 +25,8 @@ const translation = {
       learnMore: 'Mehr erfahren',
       description: ' über die Abrufmethode.',
       longDescription: ' über die Abrufmethode, dies kann jederzeit in den Wissenseinstellungen geändert werden.',
+      method: 'Abrufmethode',
+      multiModalTip: 'Wenn das Embedding-Modell multimodal unterstützt, wählen Sie bitte ein multimodales Reranking-Modell für eine bessere Leistung.',
     },
     save: 'Speichern',
     permissionsInvitedMembers: 'Teilweise Teammitglieder',
@@ -35,6 +37,15 @@ const translation = {
     upgradeHighQualityTip: 'Nach dem Upgrade auf den Modus "Hohe Qualität" ist das Zurücksetzen auf den Modus "Wirtschaftlich" nicht mehr möglich',
     helpText: 'Erfahren Sie, wie Sie eine gute Datensatzbeschreibung schreiben.',
     indexMethodChangeToEconomyDisabledTip: 'Nicht verfügbar für ein Downgrade von HQ auf ECO',
+    searchModel: 'Modell suchen',
+    chunkStructure: {
+      learnMore: 'Weitere Informationen',
+      title: 'Chunk-Struktur',
+      description: 'über Chunk Structure.',
+    },
+    nameAndIcon: 'Name & Symbol',
+    onSearchResults: 'Kein Mitglied stimmt mit Ihrer Suchanfrage überein.\nVersuchen Sie Ihre Suche erneut.',
+    numberOfKeywords: 'Anzahl der Schlüsselwörter',
   },
 }
 

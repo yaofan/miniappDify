@@ -35,12 +35,12 @@ import {
 import {
   getMarketplaceListCondition,
   getMarketplaceListFilterType,
+  updateSearchParams,
 } from './utils'
 import { useInstalledPluginList } from '@/service/use-plugins'
+import { debounce, noop } from 'lodash-es'
 
 export type MarketplaceContextValue = {
-  intersected: boolean
-  setIntersected: (intersected: boolean) => void
   searchPluginText: string
   handleSearchPluginTextChange: (text: string) => void
   filterPluginTags: string[]
@@ -48,7 +48,7 @@ export type MarketplaceContextValue = {
   activePluginType: string
   handleActivePluginTypeChange: (type: string) => void
   page: number
-  handlePageChange: (page: number) => void
+  handlePageChange: () => void
   plugins?: Plugin[]
   pluginsTotal?: number
   resetPlugins: () => void
@@ -65,27 +65,25 @@ export type MarketplaceContextValue = {
 }
 
 export const MarketplaceContext = createContext<MarketplaceContextValue>({
-  intersected: true,
-  setIntersected: () => {},
   searchPluginText: '',
-  handleSearchPluginTextChange: () => {},
+  handleSearchPluginTextChange: noop,
   filterPluginTags: [],
-  handleFilterPluginTagsChange: () => {},
+  handleFilterPluginTagsChange: noop,
   activePluginType: 'all',
-  handleActivePluginTypeChange: () => {},
+  handleActivePluginTypeChange: noop,
   page: 1,
-  handlePageChange: () => {},
+  handlePageChange: noop,
   plugins: undefined,
   pluginsTotal: 0,
-  resetPlugins: () => {},
+  resetPlugins: noop,
   sort: DEFAULT_SORT,
-  handleSortChange: () => {},
-  handleQueryPlugins: () => {},
-  handleMoreClick: () => {},
+  handleSortChange: noop,
+  handleQueryPlugins: noop,
+  handleMoreClick: noop,
   marketplaceCollectionsFromClient: [],
-  setMarketplaceCollectionsFromClient: () => {},
+  setMarketplaceCollectionsFromClient: noop,
   marketplaceCollectionPluginsMapFromClient: {},
-  setMarketplaceCollectionPluginsMapFromClient: () => {},
+  setMarketplaceCollectionPluginsMapFromClient: noop,
   isLoading: false,
   isSuccessCollections: false,
 })
@@ -95,6 +93,7 @@ type MarketplaceContextProviderProps = {
   searchParams?: SearchParams
   shouldExclude?: boolean
   scrollContainerId?: string
+  showSearchParams?: boolean
 }
 
 export function useMarketplaceContext(selector: (value: MarketplaceContextValue) => any) {
@@ -106,6 +105,7 @@ export const MarketplaceContextProvider = ({
   searchParams,
   shouldExclude,
   scrollContainerId,
+  showSearchParams,
 }: MarketplaceContextProviderProps) => {
   const { data, isSuccess } = useInstalledPluginList(!shouldExclude)
   const exclude = useMemo(() => {
@@ -117,15 +117,12 @@ export const MarketplaceContextProvider = ({
   const hasValidTags = !!tagsFromSearchParams.length
   const hasValidCategory = getValidCategoryKeys(searchParams?.category)
   const categoryFromSearchParams = hasValidCategory || PLUGIN_TYPE_SEARCH_MAP.all
-  const [intersected, setIntersected] = useState(true)
   const [searchPluginText, setSearchPluginText] = useState(queryFromSearchParams)
   const searchPluginTextRef = useRef(searchPluginText)
   const [filterPluginTags, setFilterPluginTags] = useState<string[]>(tagsFromSearchParams)
   const filterPluginTagsRef = useRef(filterPluginTags)
   const [activePluginType, setActivePluginType] = useState(categoryFromSearchParams)
   const activePluginTypeRef = useRef(activePluginType)
-  const [page, setPage] = useState(1)
-  const pageRef = useRef(page)
   const [sort, setSort] = useState(DEFAULT_SORT)
   const sortRef = useRef(sort)
   const {
@@ -145,7 +142,11 @@ export const MarketplaceContextProvider = ({
     queryPluginsWithDebounced,
     cancelQueryPluginsWithDebounced,
     isLoading: isPluginsLoading,
+    fetchNextPage: fetchNextPluginsPage,
+    hasNextPage: hasNextPluginsPage,
+    page: pluginsPage,
   } = useMarketplacePlugins()
+  const page = Math.max(pluginsPage || 0, 1)
 
   useEffect(() => {
     if (queryFromSearchParams || hasValidTags || hasValidCategory) {
@@ -156,9 +157,11 @@ export const MarketplaceContextProvider = ({
         sortBy: sortRef.current.sortBy,
         sortOrder: sortRef.current.sortOrder,
         type: getMarketplaceListFilterType(activePluginTypeRef.current),
-        page: pageRef.current,
       })
-      history.pushState({}, '', `/${searchParams?.language ? `?language=${searchParams?.language}` : ''}`)
+      const url = new URL(window.location.href)
+      if (searchParams?.language)
+        url.searchParams.set('language', searchParams?.language)
+      history.replaceState({}, '', url)
     }
     else {
       if (shouldExclude && isSuccess) {
@@ -168,7 +171,6 @@ export const MarketplaceContextProvider = ({
         })
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryPlugins, queryMarketplaceCollectionsAndPlugins, isSuccess, exclude])
 
   const handleQueryMarketplaceCollectionsAndPlugins = useCallback(() => {
@@ -181,7 +183,31 @@ export const MarketplaceContextProvider = ({
     resetPlugins()
   }, [exclude, queryMarketplaceCollectionsAndPlugins, resetPlugins])
 
+  const debouncedUpdateSearchParams = useMemo(() => debounce(() => {
+    updateSearchParams({
+      query: searchPluginTextRef.current,
+      category: activePluginTypeRef.current,
+      tags: filterPluginTagsRef.current,
+    })
+  }, 500), [])
+
+  const handleUpdateSearchParams = useCallback((debounced?: boolean) => {
+    if (!showSearchParams)
+      return
+    if (debounced) {
+      debouncedUpdateSearchParams()
+    }
+    else {
+      updateSearchParams({
+        query: searchPluginTextRef.current,
+        category: activePluginTypeRef.current,
+        tags: filterPluginTagsRef.current,
+      })
+    }
+  }, [debouncedUpdateSearchParams, showSearchParams])
+
   const handleQueryPlugins = useCallback((debounced?: boolean) => {
+    handleUpdateSearchParams(debounced)
     if (debounced) {
       queryPluginsWithDebounced({
         query: searchPluginTextRef.current,
@@ -191,7 +217,6 @@ export const MarketplaceContextProvider = ({
         sortOrder: sortRef.current.sortOrder,
         exclude,
         type: getMarketplaceListFilterType(activePluginTypeRef.current),
-        page: pageRef.current,
       })
     }
     else {
@@ -203,26 +228,24 @@ export const MarketplaceContextProvider = ({
         sortOrder: sortRef.current.sortOrder,
         exclude,
         type: getMarketplaceListFilterType(activePluginTypeRef.current),
-        page: pageRef.current,
       })
     }
-  }, [exclude, queryPluginsWithDebounced, queryPlugins])
+  }, [exclude, queryPluginsWithDebounced, queryPlugins, handleUpdateSearchParams])
 
   const handleQuery = useCallback((debounced?: boolean) => {
     if (!searchPluginTextRef.current && !filterPluginTagsRef.current.length) {
+      handleUpdateSearchParams(debounced)
       cancelQueryPluginsWithDebounced()
       handleQueryMarketplaceCollectionsAndPlugins()
       return
     }
 
     handleQueryPlugins(debounced)
-  }, [handleQueryMarketplaceCollectionsAndPlugins, handleQueryPlugins, cancelQueryPluginsWithDebounced])
+  }, [handleQueryMarketplaceCollectionsAndPlugins, handleQueryPlugins, cancelQueryPluginsWithDebounced, handleUpdateSearchParams])
 
   const handleSearchPluginTextChange = useCallback((text: string) => {
     setSearchPluginText(text)
     searchPluginTextRef.current = text
-    setPage(1)
-    pageRef.current = 1
 
     handleQuery(true)
   }, [handleQuery])
@@ -230,8 +253,6 @@ export const MarketplaceContextProvider = ({
   const handleFilterPluginTagsChange = useCallback((tags: string[]) => {
     setFilterPluginTags(tags)
     filterPluginTagsRef.current = tags
-    setPage(1)
-    pageRef.current = 1
 
     handleQuery()
   }, [handleQuery])
@@ -239,31 +260,21 @@ export const MarketplaceContextProvider = ({
   const handleActivePluginTypeChange = useCallback((type: string) => {
     setActivePluginType(type)
     activePluginTypeRef.current = type
-    setPage(1)
-    pageRef.current = 1
-  }, [])
 
-  useEffect(() => {
     handleQuery()
-  }, [activePluginType, handleQuery])
+  }, [handleQuery])
 
   const handleSortChange = useCallback((sort: PluginsSort) => {
     setSort(sort)
     sortRef.current = sort
-    setPage(1)
-    pageRef.current = 1
 
     handleQueryPlugins()
   }, [handleQueryPlugins])
 
   const handlePageChange = useCallback(() => {
-    if (pluginsTotal && plugins && pluginsTotal > plugins.length) {
-      setPage(pageRef.current + 1)
-      pageRef.current++
-
-      handleQueryPlugins()
-    }
-  }, [handleQueryPlugins, plugins, pluginsTotal])
+    if (hasNextPluginsPage)
+      fetchNextPluginsPage()
+  }, [fetchNextPluginsPage, hasNextPluginsPage])
 
   const handleMoreClick = useCallback((searchParams: SearchParamsFromCollection) => {
     setSearchPluginText(searchParams?.query || '')
@@ -276,9 +287,6 @@ export const MarketplaceContextProvider = ({
       sortBy: searchParams?.sort_by || DEFAULT_SORT.sortBy,
       sortOrder: searchParams?.sort_order || DEFAULT_SORT.sortOrder,
     }
-    setPage(1)
-    pageRef.current = 1
-
     handleQueryPlugins()
   }, [handleQueryPlugins])
 
@@ -287,8 +295,6 @@ export const MarketplaceContextProvider = ({
   return (
     <MarketplaceContext.Provider
       value={{
-        intersected,
-        setIntersected,
         searchPluginText,
         handleSearchPluginTextChange,
         filterPluginTags,

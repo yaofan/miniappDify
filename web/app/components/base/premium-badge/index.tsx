@@ -12,6 +12,7 @@ const PremiumBadgeVariants = cva(
       size: {
         s: 'premium-badge-s',
         m: 'premium-badge-m',
+        custom: '',
       },
       color: {
         blue: 'premium-badge-blue',
@@ -33,7 +34,7 @@ const PremiumBadgeVariants = cva(
 )
 
 type PremiumBadgeProps = {
-  size?: 's' | 'm'
+  size?: 's' | 'm' | 'custom'
   color?: 'blue' | 'indigo' | 'gray' | 'orange'
   allowHover?: boolean
   styleCss?: CSSProperties
@@ -61,13 +62,9 @@ const PremiumBadge: React.FC<PremiumBadgeProps> = ({
       {children}
       <Highlight
         className={classNames(
-          'absolute top-0 opacity-50 hover:opacity-80',
+          'absolute right-1/2 top-0 translate-x-[20%] opacity-50 transition-all duration-100 ease-out hover:translate-x-[30%] hover:opacity-80',
           size === 's' ? 'h-[18px] w-12' : 'h-6 w-12',
         )}
-        style={{
-          right: '50%',
-          transform: 'translateX(10%)',
-        }}
       />
     </div>
   )

@@ -1,6 +1,6 @@
 'use client'
 import type { FC } from 'react'
-import React from 'react'
+import React, { useMemo } from 'react'
 import type { ToolWithProvider } from '../../types'
 import { BlockEnum } from '../../types'
 import type { ToolDefaultValue } from '../types'
@@ -10,14 +10,25 @@ import { useGetLanguage } from '@/context/i18n'
 import BlockIcon from '../../block-icon'
 import cn from '@/utils/classnames'
 import { useTranslation } from 'react-i18next'
-import { RiCheckLine } from '@remixicon/react'
-import Badge from '@/app/components/base/badge'
+import useTheme from '@/hooks/use-theme'
+import { Theme } from '@/types/app'
+import { basePath } from '@/utils/var'
+import { trackEvent } from '@/app/components/base/amplitude'
+
+const normalizeProviderIcon = (icon?: ToolWithProvider['icon']) => {
+  if (!icon)
+    return icon
+  if (typeof icon === 'string' && basePath && icon.startsWith('/') && !icon.startsWith(`${basePath}/`))
+    return `${basePath}${icon}`
+  return icon
+}
 
 type Props = {
   provider: ToolWithProvider
   payload: Tool
   disabled?: boolean
-  onSelect: (type: BlockEnum, tool?: ToolDefaultValue) => void
+  isAdded?: boolean
+  onSelect: (type: BlockEnum, tool: ToolDefaultValue) => void
 }
 
 const ToolItem: FC<Props> = ({
@@ -25,15 +36,31 @@ const ToolItem: FC<Props> = ({
   payload,
   onSelect,
   disabled,
+  isAdded,
 }) => {
   const { t } = useTranslation()
 
   const language = useGetLanguage()
+  const { theme } = useTheme()
+  const normalizedIcon = useMemo<ToolWithProvider['icon']>(() => {
+    return normalizeProviderIcon(provider.icon) ?? provider.icon
+  }, [provider.icon])
+  const normalizedIconDark = useMemo(() => {
+    if (!provider.icon_dark)
+      return undefined
+    return normalizeProviderIcon(provider.icon_dark) ?? provider.icon_dark
+  }, [provider.icon_dark])
+  const providerIcon = useMemo(() => {
+    if (theme === Theme.dark && normalizedIconDark)
+      return normalizedIconDark
+    return normalizedIcon
+  }, [theme, normalizedIcon, normalizedIconDark])
 
   return (
     <Tooltip
       key={payload.name}
       position='right'
+      needsDelay={false}
       popupClassName='!p-0 !px-3 !py-2.5 !w-[200px] !leading-[18px] !text-xs !text-gray-700 !border-[0.5px] !border-black/5 !rounded-xl !shadow-lg'
       popupContent={(
         <div>
@@ -41,7 +68,7 @@ const ToolItem: FC<Props> = ({
             size='md'
             className='mb-2'
             type={BlockEnum.Tool}
-            toolIcon={provider.icon}
+            toolIcon={providerIcon}
           />
           <div className='mb-1 text-sm leading-5 text-text-primary'>{payload.label[language]}</div>
           <div className='text-xs leading-[18px] text-text-secondary'>{payload.description[language]}</div>
@@ -63,25 +90,31 @@ const ToolItem: FC<Props> = ({
             provider_id: provider.id,
             provider_type: provider.type,
             provider_name: provider.name,
+            plugin_id: provider.plugin_id,
+            plugin_unique_identifier: provider.plugin_unique_identifier,
+            provider_icon: normalizedIcon,
+            provider_icon_dark: normalizedIconDark,
             tool_name: payload.name,
             tool_label: payload.label[language],
+            tool_description: payload.description[language],
             title: payload.label[language],
             is_team_authorization: provider.is_team_authorization,
-            output_schema: payload.output_schema,
             paramSchemas: payload.parameters,
             params,
+            meta: provider.meta,
+          })
+          trackEvent('tool_selected', {
+            tool_name: payload.name,
+            plugin_id: provider.plugin_id,
           })
         }}
       >
-        <div className={cn('system-sm-medium h-8 truncate border-l-2 border-divider-subtle pl-4 leading-8 text-text-secondary', disabled && 'opacity-30')}>{payload.label[language]}</div>
-        {disabled && <Badge
-          className='flex h-5 items-center space-x-0.5 text-text-tertiary'
-          uppercase
-        >
-          <RiCheckLine className='h-3 w-3 ' />
-          <div>{t('tools.addToolModal.added')}</div>
-        </Badge>
-        }
+        <div className={cn('system-sm-medium h-8 truncate border-l-2 border-divider-subtle pl-4 leading-8 text-text-secondary')}>
+          <span className={cn(disabled && 'opacity-30')}>{payload.label[language]}</span>
+        </div>
+        {isAdded && (
+          <div className='system-xs-regular mr-4 text-text-tertiary'>{t('tools.addToolModal.added')}</div>
+        )}
       </div>
     </Tooltip >
   )

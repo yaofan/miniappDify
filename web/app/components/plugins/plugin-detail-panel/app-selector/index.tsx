@@ -1,6 +1,6 @@
 'use client'
 import type { FC } from 'react'
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   PortalToFollowElem,
@@ -10,12 +10,14 @@ import {
 import AppTrigger from '@/app/components/plugins/plugin-detail-panel/app-selector/app-trigger'
 import AppPicker from '@/app/components/plugins/plugin-detail-panel/app-selector/app-picker'
 import AppInputsPanel from '@/app/components/plugins/plugin-detail-panel/app-selector/app-inputs-panel'
-import { useAppFullList } from '@/service/use-apps'
 import type { App } from '@/types/app'
 import type {
   OffsetOptions,
   Placement,
 } from '@floating-ui/react'
+import { useInfiniteAppList } from '@/service/use-apps'
+
+const PAGE_SIZE = 20
 
 type Props = {
   value?: {
@@ -34,6 +36,7 @@ type Props = {
   }) => void
   supportAddCustomTool?: boolean
 }
+
 const AppSelector: FC<Props> = ({
   value,
   scope,
@@ -44,17 +47,48 @@ const AppSelector: FC<Props> = ({
 }) => {
   const { t } = useTranslation()
   const [isShow, onShowChange] = useState(false)
+  const [searchText, setSearchText] = useState('')
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteAppList({
+    page: 1,
+    limit: PAGE_SIZE,
+    name: searchText,
+  })
+
+  const pages = data?.pages ?? []
+  const displayedApps = useMemo(() => {
+    if (!pages.length) return []
+    return pages.flatMap(({ data: apps }) => apps)
+  }, [pages])
+
+  const hasMore = hasNextPage ?? true
+
+  const handleLoadMore = useCallback(async () => {
+    if (isLoadingMore || isFetchingNextPage || !hasMore) return
+
+    setIsLoadingMore(true)
+    try {
+      await fetchNextPage()
+    }
+    finally {
+      // Add a small delay to ensure state updates are complete
+      setTimeout(() => {
+        setIsLoadingMore(false)
+      }, 300)
+    }
+  }, [isLoadingMore, isFetchingNextPage, hasMore, fetchNextPage])
+
   const handleTriggerClick = () => {
     if (disabled) return
     onShowChange(true)
   }
-
-  const { data: appList } = useAppFullList()
-  const currentAppInfo = useMemo(() => {
-    if (!appList?.data || !value)
-      return undefined
-    return appList.data.find(app => app.id === value.app_id)
-  }, [appList?.data, value])
 
   const [isShowChooseApp, setIsShowChooseApp] = useState(false)
   const handleSelectApp = (app: App) => {
@@ -67,6 +101,7 @@ const AppSelector: FC<Props> = ({
     onSelect(appValue)
     setIsShowChooseApp(false)
   }
+
   const handleFormChange = (inputs: Record<string, any>) => {
     const newFiles = inputs['#image#']
     delete inputs['#image#']
@@ -87,6 +122,12 @@ const AppSelector: FC<Props> = ({
       },
     }
   }, [value])
+
+  const currentAppInfo = useMemo(() => {
+    if (!displayedApps || !value)
+      return undefined
+    return displayedApps.find(app => app.id === value.app_id)
+  }, [displayedApps, value])
 
   return (
     <>
@@ -121,9 +162,14 @@ const AppSelector: FC<Props> = ({
                 isShow={isShowChooseApp}
                 onShowChange={setIsShowChooseApp}
                 disabled={false}
-                appList={appList?.data || []}
                 onSelect={handleSelectApp}
                 scope={scope || 'all'}
+                apps={displayedApps}
+                isLoading={isLoading || isLoadingMore || isFetchingNextPage}
+                hasMore={hasMore}
+                onLoadMore={handleLoadMore}
+                searchText={searchText}
+                onSearchChange={setSearchText}
               />
             </div>
             {/* app inputs config panel */}
@@ -140,4 +186,5 @@ const AppSelector: FC<Props> = ({
     </>
   )
 }
+
 export default React.memo(AppSelector)

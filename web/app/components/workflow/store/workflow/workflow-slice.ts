@@ -1,8 +1,10 @@
 import type { StateCreator } from 'zustand'
 import type {
   Node,
+  TriggerNodeType,
   WorkflowRunningData,
 } from '@/app/components/workflow/types'
+import type { FileUploadConfigResponse } from '@/models/common'
 
 type PreviewRunningData = WorkflowRunningData & {
   resultTabActive?: boolean
@@ -10,11 +12,18 @@ type PreviewRunningData = WorkflowRunningData & {
 }
 
 export type WorkflowSliceShape = {
-  appId: string
   workflowRunningData?: PreviewRunningData
   setWorkflowRunningData: (workflowData: PreviewRunningData) => void
-  notInitialWorkflow: boolean
-  setNotInitialWorkflow: (notInitialWorkflow: boolean) => void
+  isListening: boolean
+  setIsListening: (listening: boolean) => void
+  listeningTriggerType: TriggerNodeType | null
+  setListeningTriggerType: (triggerType: TriggerNodeType | null) => void
+  listeningTriggerNodeId: string | null
+  setListeningTriggerNodeId: (nodeId: string | null) => void
+  listeningTriggerNodeIds: string[]
+  setListeningTriggerNodeIds: (nodeIds: string[]) => void
+  listeningTriggerIsAll: boolean
+  setListeningTriggerIsAll: (isAll: boolean) => void
   clipboardElements: Node[]
   setClipboardElements: (clipboardElements: Node[]) => void
   selection: null | { x1: number; y1: number; x2: number; y2: number }
@@ -31,16 +40,23 @@ export type WorkflowSliceShape = {
   setControlPromptEditorRerenderKey: (controlPromptEditorRerenderKey: number) => void
   showImportDSLModal: boolean
   setShowImportDSLModal: (showImportDSLModal: boolean) => void
-  showTips: string
-  setShowTips: (showTips: string) => void
+  fileUploadConfig?: FileUploadConfigResponse
+  setFileUploadConfig: (fileUploadConfig: FileUploadConfigResponse) => void
 }
 
 export const createWorkflowSlice: StateCreator<WorkflowSliceShape> = set => ({
-  appId: '',
   workflowRunningData: undefined,
   setWorkflowRunningData: workflowRunningData => set(() => ({ workflowRunningData })),
-  notInitialWorkflow: false,
-  setNotInitialWorkflow: notInitialWorkflow => set(() => ({ notInitialWorkflow })),
+  isListening: false,
+  setIsListening: listening => set(() => ({ isListening: listening })),
+  listeningTriggerType: null,
+  setListeningTriggerType: triggerType => set(() => ({ listeningTriggerType: triggerType })),
+  listeningTriggerNodeId: null,
+  setListeningTriggerNodeId: nodeId => set(() => ({ listeningTriggerNodeId: nodeId })),
+  listeningTriggerNodeIds: [],
+  setListeningTriggerNodeIds: nodeIds => set(() => ({ listeningTriggerNodeIds: nodeIds })),
+  listeningTriggerIsAll: false,
+  setListeningTriggerIsAll: isAll => set(() => ({ listeningTriggerIsAll: isAll })),
   clipboardElements: [],
   setClipboardElements: clipboardElements => set(() => ({ clipboardElements })),
   selection: null,
@@ -60,6 +76,6 @@ export const createWorkflowSlice: StateCreator<WorkflowSliceShape> = set => ({
   setControlPromptEditorRerenderKey: controlPromptEditorRerenderKey => set(() => ({ controlPromptEditorRerenderKey })),
   showImportDSLModal: false,
   setShowImportDSLModal: showImportDSLModal => set(() => ({ showImportDSLModal })),
-  showTips: '',
-  setShowTips: showTips => set(() => ({ showTips })),
+  fileUploadConfig: undefined,
+  setFileUploadConfig: fileUploadConfig => set(() => ({ fileUploadConfig })),
 })

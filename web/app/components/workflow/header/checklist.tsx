@@ -5,7 +5,6 @@ import {
 import { useTranslation } from 'react-i18next'
 import {
   useEdges,
-  useNodes,
 } from 'reactflow'
 import {
   RiCloseLine,
@@ -16,9 +15,9 @@ import {
   useChecklist,
   useNodesInteractions,
 } from '../hooks'
+import type { ChecklistItem } from '../hooks/use-checklist'
 import type {
   CommonEdgeType,
-  CommonNodeType,
 } from '../types'
 import cn from '@/utils/classnames'
 import {
@@ -29,20 +28,40 @@ import {
 import {
   ChecklistSquare,
 } from '@/app/components/base/icons/src/vender/line/general'
-import { AlertTriangle } from '@/app/components/base/icons/src/vender/line/alertsAndFeedback'
+import { Warning } from '@/app/components/base/icons/src/vender/line/alertsAndFeedback'
+import { IconR } from '@/app/components/base/icons/src/vender/line/arrows'
+import type {
+  BlockEnum,
+} from '../types'
+import useNodes from '@/app/components/workflow/store/workflow/use-nodes'
 
 type WorkflowChecklistProps = {
   disabled: boolean
+  showGoTo?: boolean
+  onItemClick?: (item: ChecklistItem) => void
 }
 const WorkflowChecklist = ({
   disabled,
+  showGoTo = true,
+  onItemClick,
 }: WorkflowChecklistProps) => {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
-  const nodes = useNodes<CommonNodeType>()
   const edges = useEdges<CommonEdgeType>()
+  const nodes = useNodes()
   const needWarningNodes = useChecklist(nodes, edges)
   const { handleNodeSelect } = useNodesInteractions()
+
+  const handleChecklistItemClick = (item: ChecklistItem) => {
+    const goToEnabled = showGoTo && item.canNavigate && !item.disableGoTo
+    if (!goToEnabled)
+      return
+    if (onItemClick)
+      onItemClick(item)
+    else
+      handleNodeSelect(item.id)
+    setOpen(false)
+  }
 
   return (
     <PortalToFollowElem
@@ -79,52 +98,67 @@ const WorkflowChecklist = ({
       </PortalToFollowElemTrigger>
       <PortalToFollowElemContent className='z-[12]'>
         <div
-          className='w-[420px] overflow-y-auto rounded-2xl border-[0.5px] border-black/5 bg-white shadow-lg'
+          className='w-[420px] overflow-y-auto rounded-2xl border-[0.5px] border-components-panel-border bg-components-panel-bg shadow-lg'
           style={{
             maxHeight: 'calc(2 / 3 * 100vh)',
           }}
         >
-          <div className='text-md sticky top-0 z-[1] flex h-[44px] items-center bg-white pl-4 pr-3 pt-3 font-semibold text-gray-900'>
+          <div className='text-md sticky top-0 z-[1] flex h-[44px] items-center bg-components-panel-bg pl-4 pr-3 pt-3 font-semibold text-text-primary'>
             <div className='grow'>{t('workflow.panel.checklist')}{needWarningNodes.length ? `(${needWarningNodes.length})` : ''}</div>
             <div
               className='flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center'
               onClick={() => setOpen(false)}
             >
-              <RiCloseLine className='h-4 w-4 text-gray-500' />
+              <RiCloseLine className='h-4 w-4 text-text-tertiary' />
             </div>
           </div>
-          <div className='py-2'>
+          <div className='pb-2'>
             {
               !!needWarningNodes.length && (
                 <>
-                  <div className='px-4 text-xs text-gray-400'>{t('workflow.panel.checklistTip')}</div>
+                  <div className='px-4 pt-1 text-xs text-text-tertiary'>{t('workflow.panel.checklistTip')}</div>
                   <div className='px-4 py-2'>
                     {
                       needWarningNodes.map(node => (
                         <div
                           key={node.id}
-                          className='mb-2 cursor-pointer rounded-lg border-[0.5px] border-gray-200 bg-white shadow-xs last-of-type:mb-0'
-                          onClick={() => {
-                            handleNodeSelect(node.id)
-                            setOpen(false)
-                          }}
+                          className={cn(
+                            'group mb-2 rounded-lg border-[0.5px] border-components-panel-border bg-components-panel-bg shadow-xs last-of-type:mb-0',
+                            showGoTo && node.canNavigate && !node.disableGoTo ? 'cursor-pointer' : 'cursor-default opacity-80',
+                          )}
+                          onClick={() => handleChecklistItemClick(node)}
                         >
-                          <div className='flex h-9 items-center p-2 text-xs font-medium text-gray-700'>
+                          <div className='flex h-9 items-center p-2 text-xs font-medium text-text-secondary'>
                             <BlockIcon
-                              type={node.type}
+                              type={node.type as BlockEnum}
                               className='mr-1.5'
                               toolIcon={node.toolIcon}
                             />
                             <span className='grow truncate'>
                               {node.title}
                             </span>
+                            {
+                              (showGoTo && node.canNavigate && !node.disableGoTo) && (
+                                <div className='flex h-4 w-[60px] shrink-0 items-center justify-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100'>
+                                  <span className='whitespace-nowrap text-xs font-medium leading-4 text-primary-600'>
+                                    {t('workflow.panel.goTo')}
+                                  </span>
+                                  <IconR className='h-3.5 w-3.5 text-primary-600' />
+                                </div>
+                              )
+                            }
                           </div>
-                          <div className='border-t-[0.5px] border-t-black/2'>
+                          <div
+                            className={cn(
+                              'rounded-b-lg border-t-[0.5px] border-divider-regular',
+                              (node.unConnected || node.errorMessage) && 'bg-gradient-to-r from-components-badge-bg-orange-soft to-transparent',
+                            )}
+                          >
                             {
                               node.unConnected && (
-                                <div className='rounded-b-lg bg-gray-25 px-3 py-2'>
-                                  <div className='flex text-xs leading-[18px] text-gray-500'>
-                                    <AlertTriangle className='mr-2 mt-[3px] h-3 w-3 text-[#F79009]' />
+                                <div className='px-3 py-1 first:pt-1.5 last:pb-1.5'>
+                                  <div className='flex text-xs leading-4 text-text-tertiary'>
+                                    <Warning className='mr-2 mt-[2px] h-3 w-3 text-[#F79009]' />
                                     {t('workflow.common.needConnectTip')}
                                   </div>
                                 </div>
@@ -132,9 +166,9 @@ const WorkflowChecklist = ({
                             }
                             {
                               node.errorMessage && (
-                                <div className='rounded-b-lg bg-gray-25 px-3 py-2'>
-                                  <div className='flex text-xs leading-[18px] text-gray-500'>
-                                    <AlertTriangle className='mr-2 mt-[3px] h-3 w-3 text-[#F79009]' />
+                                <div className='px-3 py-1 first:pt-1.5 last:pb-1.5'>
+                                  <div className='flex text-xs leading-4 text-text-tertiary'>
+                                    <Warning className='mr-2 mt-[2px] h-3 w-3 text-[#F79009]' />
                                     {node.errorMessage}
                                   </div>
                                 </div>
@@ -150,8 +184,8 @@ const WorkflowChecklist = ({
             }
             {
               !needWarningNodes.length && (
-                <div className='mx-4 mb-3 rounded-lg bg-gray-50 py-4 text-center text-xs text-gray-400'>
-                  <ChecklistSquare className='mx-auto mb-[5px] h-8 w-8 text-gray-300' />
+                <div className='mx-4 mb-3 rounded-lg bg-components-panel-bg py-4 text-center text-xs text-text-tertiary'>
+                  <ChecklistSquare className='mx-auto mb-[5px] h-8 w-8 text-text-quaternary' />
                   {t('workflow.panel.checklistResolved')}
                 </div>
               )

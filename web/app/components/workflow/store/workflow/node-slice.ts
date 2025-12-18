@@ -12,8 +12,6 @@ import type {
 export type NodeSliceShape = {
   showSingleRunPanel: boolean
   setShowSingleRunPanel: (showSingleRunPanel: boolean) => void
-  nodesDefaultConfigs: Record<string, any>
-  setNodesDefaultConfigs: (nodesDefaultConfigs: Record<string, any>) => void
   nodeAnimation: boolean
   setNodeAnimation: (nodeAnimation: boolean) => void
   candidateNode?: Node
@@ -50,13 +48,16 @@ export type NodeSliceShape = {
   setLoopTimes: (loopTimes: number) => void
   iterParallelLogMap: Map<string, Map<string, NodeTracing[]>>
   setIterParallelLogMap: (iterParallelLogMap: Map<string, Map<string, NodeTracing[]>>) => void
+  pendingSingleRun?: {
+    nodeId: string
+    action: 'run' | 'stop'
+  }
+  setPendingSingleRun: (payload?: NodeSliceShape['pendingSingleRun']) => void
 }
 
 export const createNodeSlice: StateCreator<NodeSliceShape> = set => ({
   showSingleRunPanel: false,
   setShowSingleRunPanel: showSingleRunPanel => set(() => ({ showSingleRunPanel })),
-  nodesDefaultConfigs: {},
-  setNodesDefaultConfigs: nodesDefaultConfigs => set(() => ({ nodesDefaultConfigs })),
   nodeAnimation: false,
   setNodeAnimation: nodeAnimation => set(() => ({ nodeAnimation })),
   candidateNode: undefined,
@@ -77,4 +78,6 @@ export const createNodeSlice: StateCreator<NodeSliceShape> = set => ({
   setLoopTimes: loopTimes => set(() => ({ loopTimes })),
   iterParallelLogMap: new Map<string, Map<string, NodeTracing[]>>(),
   setIterParallelLogMap: iterParallelLogMap => set(() => ({ iterParallelLogMap })),
+  pendingSingleRun: undefined,
+  setPendingSingleRun: payload => set(() => ({ pendingSingleRun: payload })),
 })

@@ -38,15 +38,15 @@ const translation = {
       preview: 'Podgląd',
       regenerate: 'Wygeneruj ponownie',
       regenerateNotice: 'Czy chcesz wygenerować ponownie publiczny adres URL?',
-      preUseReminder: 'Przed kontynuowaniem włącz aplikację WebApp.',
+      preUseReminder: 'Przed kontynuowaniem włącz aplikację web app.',
       settings: {
         entry: 'Ustawienia',
-        title: 'Ustawienia WebApp',
-        webName: 'Nazwa WebApp',
-        webDesc: 'Opis WebApp',
+        title: 'Ustawienia web app',
+        webName: 'Nazwa web app',
+        webDesc: 'Opis web app',
         webDescTip:
           'Ten tekst będzie wyświetlany po stronie klienta, zapewniając podstawowe wskazówki, jak korzystać z aplikacji',
-        webDescPlaceholder: 'Wpisz opis WebApp',
+        webDescPlaceholder: 'Wpisz opis web app',
         language: 'Język',
         workflow: {
           title: 'Kroki przepływu pracy',
@@ -59,6 +59,7 @@ const translation = {
         chatColorThemeDesc: 'Ustaw motyw kolorystyczny czatu',
         chatColorThemeInverted: 'Odwrócony',
         invalidHexMessage: 'Nieprawidłowa wartość heksadecymalna',
+        invalidPrivacyPolicy: 'Nieprawidłowy link do polityki prywatności. Proszę użyć prawidłowego linku zaczynającego się od http lub https',
         more: {
           entry: 'Pokaż więcej ustawień',
           copyright: 'Prawa autorskie',
@@ -124,6 +125,11 @@ const translation = {
         },
       },
       launch: 'Uruchomić',
+      enableTooltip: {
+        description: 'Aby włączyć tę funkcję, dodaj węzeł Wprowadzanie użytkownika na planszę. (Może już istnieć w szkicu, zacznie działać po opublikowaniu)',
+        learnMore: 'Dowiedz się więcej',
+      },
+      title: 'Aplikacja internetowa',
     },
     apiInfo: {
       title: 'API usługi w tle',
@@ -134,6 +140,17 @@ const translation = {
     status: {
       running: 'W usłudze',
       disable: 'Wyłącz',
+    },
+    triggerInfo: {
+      title: 'Czynniki wywołujące',
+      explanation: 'Zarządzanie wyzwalaczami przepływu pracy',
+      triggersAdded: '{{count}} Wyzwalacze dodane',
+      noTriggerAdded: 'Nie dodano wyzwalacza',
+      triggerStatusDescription: 'Status węzła wyzwalacza pojawia się tutaj. (Może już istnieć w wersji roboczej, obowiązuje po opublikowaniu)',
+      learnAboutTriggers: 'Dowiedz się o wyzwalaczach',
+    },
+    disableTooltip: {
+      triggerMode: 'Funkcja {{feature}} nie jest obsługiwana w trybie węzła wyzwalającego.',
     },
   },
   analysis: {

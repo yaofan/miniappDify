@@ -17,6 +17,7 @@ export type LLMNodeType = CommonNodeType & {
   }
   structured_output_enabled?: boolean
   structured_output?: StructuredOutput
+  reasoning_format?: 'tagged' | 'separated'
 }
 
 export enum Type {
@@ -25,6 +26,11 @@ export enum Type {
   boolean = 'boolean',
   object = 'object',
   array = 'array',
+  arrayString = 'array[string]',
+  arrayNumber = 'array[number]',
+  arrayObject = 'array[object]',
+  file = 'file',
+  enumType = 'enum',
 }
 
 export enum ArrayType {
@@ -51,6 +57,7 @@ export type Field = {
   items?: ArrayItems // Array has items. Define the item type
   enum?: SchemaEnumType // Enum values
   additionalProperties?: false // Required in object by api. Just set false
+  schemaType?: string // an another type defined in backend schemas
 }
 
 export type StructuredOutput = {

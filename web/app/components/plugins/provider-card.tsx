@@ -1,6 +1,7 @@
 'use client'
-import React from 'react'
+import React, { useMemo } from 'react'
 import type { FC } from 'react'
+import { useTheme } from 'next-themes'
 import { useTranslation } from 'react-i18next'
 import { RiArrowRightUpLine } from '@remixicon/react'
 import Badge from '../base/badge'
@@ -22,18 +23,22 @@ type Props = {
   payload: Plugin
 }
 
-const ProviderCard: FC<Props> = ({
+const ProviderCardComponent: FC<Props> = ({
   className,
   payload,
 }) => {
   const getValueFromI18nObject = useRenderI18nObject()
   const { t } = useTranslation()
+  const { theme } = useTheme()
   const [isShowInstallFromMarketplace, {
     setTrue: showInstallFromMarketplace,
     setFalse: hideInstallFromMarketplace,
   }] = useBoolean(false)
   const { org, label } = payload
   const { locale } = useI18N()
+
+  // Memoize the marketplace link params to prevent unnecessary re-renders
+  const marketplaceLinkParams = useMemo(() => ({ language: locale, theme }), [locale, theme])
 
   return (
     <div className={cn('group relative rounded-xl border-[0.5px] border-components-panel-border bg-components-panel-on-panel-item-bg p-4 pb-3 shadow-xs hover:bg-components-panel-on-panel-item-bg', className)}>
@@ -61,7 +66,7 @@ const ProviderCard: FC<Props> = ({
         ))}
       </div>
       <div
-        className='absolute bottom-0 left-0 right-0 hidden items-center gap-2 rounded-xl bg-gradient-to-tr from-components-panel-on-panel-item-bg to-background-gradient-mask-transparent p-4 pt-8 group-hover:flex'
+        className='absolute bottom-0 left-0 right-0 hidden items-center gap-2 rounded-xl bg-gradient-to-tr from-components-panel-on-panel-item-bg to-background-gradient-mask-transparent p-4 pt-4 group-hover:flex'
       >
         <Button
           className='grow'
@@ -74,7 +79,7 @@ const ProviderCard: FC<Props> = ({
           className='grow'
           variant='secondary'
         >
-          <a href={`${getPluginLinkInMarketplace(payload)}?language=${locale}`} target='_blank' className='flex items-center gap-0.5'>
+          <a href={getPluginLinkInMarketplace(payload, marketplaceLinkParams)} target='_blank' className='flex items-center gap-0.5'>
             {t('plugin.detailPanel.operation.detail')}
             <RiArrowRightUpLine className='h-4 w-4' />
           </a>
@@ -83,7 +88,7 @@ const ProviderCard: FC<Props> = ({
       {
         isShowInstallFromMarketplace && (
           <InstallFromMarketplace
-            manifest={payload as any}
+            manifest={payload}
             uniqueIdentifier={payload.latest_package_identifier}
             onClose={hideInstallFromMarketplace}
             onSuccess={() => hideInstallFromMarketplace()}
@@ -93,5 +98,8 @@ const ProviderCard: FC<Props> = ({
     </div>
   )
 }
+
+// Memoize the component to prevent unnecessary re-renders when props haven't changed
+const ProviderCard = React.memo(ProviderCardComponent)
 
 export default ProviderCard
